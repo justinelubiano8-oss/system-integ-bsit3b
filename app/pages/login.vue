@@ -37,11 +37,11 @@
         <div class="text-center my-2 text-caption text-grey">OR</div>
 
         
-        <v-btn color="red-darken-1" block size="large" prepend-icon="mdi-google" @click="HandleGoogleLogin">
+        <v-btn color="red-darken-1" block size="large" prepend-icon="mdi-google" @click="loginWithGoogle">
            Sign in with Google
         </v-btn>
           
-       <div ref="googleButton"></div>
+       
 
       </v-card-text>
       
@@ -53,7 +53,7 @@
 <script lang="ts" setup>
 //@ts-nocheck
 const config = useRuntimeConfig()
-const googleButton = ref<HTMLDivElement | null>(null)
+  
 
   declare global {
     interface Window {
@@ -61,46 +61,26 @@ const googleButton = ref<HTMLDivElement | null>(null)
     }
   }
 
-const handleGoogleLogin = (response: any) => {
-  console.log("Handle Google Login")
-  const user = parseJwt(response.credential);
+  const loginWithGoogle = () => {
+    const client = window.google.accounts.oauth2.initTokenClient({
+      client_id: config.public.googleClientId,
+      scope: 'openid email profile',
+      callback: async (response: any) => {
+        const userInfo = await $fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
+          headers:{
+            Authorization: `Bearer ${response.access_token}`
+          }
+        })
+          localStorage.setItem('google_user', JSON.stringify(userInfo))
+          localStorage.setItem('google_token', response.access_token)
 
-  localStorage.setItem("google_user", JSON.stringify(user));
-  localStorage.setItem("google_token", response.credential);
+          navigateTo('/')
 
-  navigateTo("/")
-}
-
-const parseJwt = (token: string) => {
-  const base64Url = token.split(".")[1];
-  const base64 = base64Url.replace(/-/g, "+").replace(/_/g);
-  return JSON.parse(
-    decodeURIComponent(
-      atob(base64)
-      .split("")
-      .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-      .join("")
-    )
-  );
-};
-
-onMounted(() => {
-  const timer = setInterval(() => {
-    if (window.google && googleButton.value) {
-      clearInterval(timer)
-
-      window.google.accounts.id.initialize({
-        client_id: config.public.googleClientId,
-        callback: handleGoogleLogin
-      })
-
-      window.google.accounts.id.renderButton(googleButton.value, {
-        theme: 'outline',
-        size: 'large',
-        width: 330
-      })
-
-    }
-  }, 300)
-})
-</script>
+        }
+        
+      
+    })
+    
+    client.requestAccessToken()
+  }
+  </script>

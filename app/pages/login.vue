@@ -52,6 +52,11 @@
 
 <script lang="ts" setup>
 //@ts-nocheck
+  definePageMeta({
+  middleware: 'auth'
+})
+
+
 const config = useRuntimeConfig()
   
 
